@@ -1,8 +1,10 @@
 // Subscription Management page
 
-function SubscriptionsPage({ subscriptions, setSubscriptions }) {
+function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription }) {
   const [selectedId, setSelectedId] = React.useState(subscriptions[0]?.id);
   const [editBuffer, setEditBuffer] = React.useState(null);
+  const [newSubOpen, setNewSubOpen] = React.useState(false);
+  const [filter, setFilter] = React.useState("all"); // all | market | tag
 
   React.useEffect(() => {
     if (!subscriptions.find(s => s.id === selectedId)) {
@@ -29,6 +31,12 @@ function SubscriptionsPage({ subscriptions, setSubscriptions }) {
     setSubscriptions(prev => prev.map(s => s.id === id ? {...s, active: !s.active} : s));
   };
 
+  const filtered = subscriptions.filter(s => {
+    if (filter === "market") return !!s.marketId;
+    if (filter === "tag") return !s.marketId;
+    return true;
+  });
+
   return (
     <div className="content" style={{gridTemplateColumns: "380px 1fr"}}>
       <div className="content-main" style={{overflow:'hidden'}}>
@@ -38,9 +46,19 @@ function SubscriptionsPage({ subscriptions, setSubscriptions }) {
               <div className="card-title">Subscriptions</div>
               <div className="card-sub">{subscriptions.length} total · {subscriptions.filter(s=>s.active).length} active</div>
             </div>
+            <button className="btn btn-primary btn-sm" onClick={() => setNewSubOpen(true)} style={{whiteSpace:'nowrap'}}>
+              <Icon.Plus size={12}/> New subscription
+            </button>
+          </div>
+          <div style={{padding:'8px 16px', borderBottom:'1px solid hsl(var(--border))', display:'flex', gap:6}}>
+            <div className="seg">
+              <button className={filter==="all"?"on":""} onClick={() => setFilter("all")}>All</button>
+              <button className={filter==="market"?"on":""} onClick={() => setFilter("market")}>Markets</button>
+              <button className={filter==="tag"?"on":""} onClick={() => setFilter("tag")}>Tags</button>
+            </div>
           </div>
           <div style={{overflowY:'auto', flex:1}}>
-            {subscriptions.map(s => (
+            {filtered.map(s => (
               <div
                 key={s.id}
                 onClick={() => setSelectedId(s.id)}
@@ -53,7 +71,9 @@ function SubscriptionsPage({ subscriptions, setSubscriptions }) {
                 }}
               >
                 <div className="row-between" style={{gap:8, marginBottom:4}}>
-                  <div style={{fontWeight:600, fontSize:13, flex:1, minWidth:0}}>
+                  <div style={{fontWeight:600, fontSize:13, flex:1, minWidth:0, display:'flex', alignItems:'center', gap:6}}>
+                    {!s.marketId && <Icon.LayoutGrid size={12}/>}
+                    {s.marketId && <Icon.Activity size={12}/>}
                     <span className="truncate" title={s.event}>{s.event}</span>
                   </div>
                   {s.active
@@ -64,13 +84,25 @@ function SubscriptionsPage({ subscriptions, setSubscriptions }) {
                   {s.contract}
                 </div>
                 <div className="row" style={{gap:4, flexWrap:'wrap'}}>
+                  <Badge variant={s.marketId ? "gray" : "blue"}>{s.marketId ? "Market" : "Tag"}</Badge>
                   <Badge variant="blue">{s.tag}</Badge>
                   {s.attrs.map(a => <Badge key={a}>{a}</Badge>)}
                   <Badge variant="amber">{s.frequency}</Badge>
                 </div>
               </div>
             ))}
-            {subscriptions.length === 0 && <div className="empty">No subscriptions yet. Subscribe to a market from the Browse page.</div>}
+            {filtered.length === 0 && (
+              <div className="empty">
+                {subscriptions.length === 0
+                  ? "No subscriptions yet. Create one below, or subscribe from the Browse page."
+                  : `No ${filter === "market" ? "market" : "tag"} subscriptions.`}
+                <div style={{marginTop:12}}>
+                  <button className="btn btn-primary btn-sm" onClick={() => setNewSubOpen(true)}>
+                    <Icon.Plus size={12}/> New subscription
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -108,9 +140,21 @@ function SubscriptionsPage({ subscriptions, setSubscriptions }) {
                 <div>
                   <div className="filter-label">Alert frequency</div>
                   <div className="seg">
-                    {["instant","daily","weekly"].map(f => (
-                      <button key={f} className={editBuffer.frequency===f?"on":""} onClick={() => setEditBuffer({...editBuffer, frequency:f})}>{f}</button>
-                    ))}
+                    {["instant","daily","weekly"].map(f => {
+                      const disabled = f === "instant";
+                      return (
+                        <button
+                          key={f}
+                          className={editBuffer.frequency===f?"on":""}
+                          onClick={() => !disabled && setEditBuffer({...editBuffer, frequency:f})}
+                          disabled={disabled}
+                          title={disabled ? "Real-time alerts coming soon" : undefined}
+                          style={disabled ? {opacity:0.45, cursor:'not-allowed'} : undefined}
+                        >
+                          {f}{disabled && " (soon)"}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -154,7 +198,7 @@ function SubscriptionsPage({ subscriptions, setSubscriptions }) {
                   </label>
                   <label className="checkbox-row">
                     <input type="checkbox" checked={editBuffer.delivery.includes("slack")} onChange={() => setEditBuffer({...editBuffer, delivery: editBuffer.delivery.includes("slack") ? editBuffer.delivery.filter(x=>x!=="slack") : [...editBuffer.delivery, "slack"]})}/>
-                    <Icon.Slack size={14}/> Slack / Discord
+                    <Icon.Slack size={14}/> Slack
                   </label>
                 </div>
                 {editBuffer.delivery.includes("slack") && (
@@ -171,6 +215,21 @@ function SubscriptionsPage({ subscriptions, setSubscriptions }) {
           <div className="card"><div className="empty">Select a subscription to edit.</div></div>
         )}
       </div>
+
+      <SubscribeDialog
+        open={newSubOpen}
+        tagCtx={{ tag: "Politics", attrs: [] }}
+        onClose={() => setNewSubOpen(false)}
+        onSave={(s) => {
+          if (addSubscription) addSubscription(s);
+          else setSubscriptions(prev => [{
+            ...s,
+            id: "s" + Math.random().toString(36).slice(2,8),
+            createdAt: new Date().toLocaleDateString("en-US"),
+            lastAlert: "—",
+          }, ...prev]);
+        }}
+      />
     </div>
   );
 }

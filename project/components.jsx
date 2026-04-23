@@ -30,6 +30,11 @@ const Icon = {
       <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
     </svg>
   ),
+  Bookmark: (p) => (
+    <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
+  ),
   AlertCircle: (p) => (
     <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -109,42 +114,86 @@ function fmt$(n) {
 }
 
 function LineChart({ data, width = 420, height = 200 }) {
-  const pad = { l: 32, r: 12, t: 16, b: 22 };
+  const pad = { l: 40, r: 44, t: 28, b: 22 };
   const w = width - pad.l - pad.r;
   const h = height - pad.t - pad.b;
-  const max = Math.max(...data.map(d => d.value)) * 1.1;
-  const min = 0;
-  const x = (i) => pad.l + (i / (data.length - 1)) * w;
-  const y = (v) => pad.t + h - ((v - min) / (max - min)) * h;
+
+  // Price (0-100 implicit, but scale to max with headroom)
+  const priceMax = Math.max(...data.map(d => d.value)) * 1.15;
+  const priceMin = 0;
+  const x = (i) => pad.l + (i / Math.max(data.length - 1, 1)) * w;
+  const y = (v) => pad.t + h - ((v - priceMin) / (priceMax - priceMin)) * h;
+
+  // Volume scaling (right axis)
+  const hasVolume = data.some(d => typeof d.volume === "number");
+  const volMax = hasVolume ? Math.max(...data.map(d => d.volume || 0)) * 1.1 : 0;
+  const volY = (v) => pad.t + h - (v / volMax) * h;
+
   const path = data.map((d, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(d.value)}`).join(" ");
   const areaPath = `${path} L${x(data.length-1)},${pad.t + h} L${x(0)},${pad.t + h} Z`;
 
   const yTicks = [0, 15, 30, 45, 60];
+  const volTicks = hasVolume ? [0, volMax * 0.5, volMax].map(v => Math.round(v)) : [];
+  const fmtVol = (v) => v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v/1e3).toFixed(0)}k` : `$${v}`;
+
+  // Bar width: fraction of the spacing between two points
+  const slot = data.length > 1 ? (w / (data.length - 1)) : w;
+  const barW = Math.max(4, Math.min(14, slot * 0.28));
+
   return (
-    <svg width={width} height={height} style={{display:'block', maxWidth:'100%'}}>
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{display:'block', width:'100%', height}}>
       <defs>
         <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="hsl(221 83% 53%)" stopOpacity="0.18"/>
           <stop offset="100%" stopColor="hsl(221 83% 53%)" stopOpacity="0"/>
         </linearGradient>
       </defs>
+
+      {/* axis titles (above plot area, won't overlap ticks) */}
+      <text x={pad.l} y={14} fontSize="10" textAnchor="start" fill="hsl(221 83% 53%)" fontWeight="600" className="mono">Price %</text>
+      {hasVolume && (
+        <text x={width-pad.r} y={14} fontSize="10" textAnchor="end" fill="hsl(220 9% 46%)" fontWeight="600" className="mono">$ Volume</text>
+      )}
+
+      {/* horizontal gridlines + left axis (price) */}
       {yTicks.map(t => (
         <g key={t}>
           <line x1={pad.l} x2={width-pad.r} y1={y(t)} y2={y(t)} stroke="hsl(220 13% 93%)"/>
           <text x={pad.l-6} y={y(t)+3} fontSize="10" textAnchor="end" fill="hsl(220 9% 46%)" className="mono">{t}</text>
         </g>
       ))}
+
+      {/* right axis (volume) */}
+      {hasVolume && volTicks.map((t, i) => (
+        <text key={`v${i}`} x={width-pad.r+6} y={volY(t)+3} fontSize="10" textAnchor="start" fill="hsl(220 9% 46%)" className="mono">
+          {fmtVol(t)}
+        </text>
+      ))}
+
+      {/* volume bars (thin, behind the line) */}
+      {hasVolume && data.map((d, i) => {
+        const bx = x(i) - barW/2;
+        const by = volY(d.volume || 0);
+        const bh = pad.t + h - by;
+        return (
+          <rect key={`b${i}`} x={bx} y={by} width={barW} height={bh}
+            fill="hsl(220 9% 60%)" fillOpacity="0.35" rx="1"/>
+        );
+      })}
+
+      {/* price line */}
       <path d={areaPath} fill="url(#chartGrad)"/>
       <path d={path} stroke="hsl(221 83% 53%)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
       {data.map((d, i) => (
         <circle key={i} cx={x(i)} cy={y(d.value)} r="3" fill="hsl(221 83% 53%)" stroke="white" strokeWidth="1.5"/>
       ))}
+
+      {/* date labels */}
       {data.map((d, i) => (
         <text key={`l${i}`} x={x(i)} y={height-6} fontSize="10" textAnchor="middle" fill="hsl(220 9% 46%)" className="mono">
           {d.date}
         </text>
       ))}
-      <text x={6} y={12} fontSize="10" fill="hsl(220 9% 46%)" className="mono">$ Volume</text>
     </svg>
   );
 }

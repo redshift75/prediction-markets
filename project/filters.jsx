@@ -43,11 +43,11 @@ function SubscribeDialog({ open, onClose, market, tagCtx, onSave }) {
     <Dialog open={open} onClose={onClose}>
       <div className="dialog-header">
         <div className="dialog-title">
-          {isTagMode ? "Subscribe to tag" : "Subscribe to market"}
+          {isTagMode ? "Subscribe to tag" : "Subscribe to contract"}
         </div>
         <div className="dialog-sub">
           {isTagMode
-            ? "Receive alerts for all markets matching this tag and attributes."
+            ? "Receive alerts for all contracts matching this tag and attributes."
             : market?.contract}
         </div>
       </div>
@@ -90,16 +90,28 @@ function SubscribeDialog({ open, onClose, market, tagCtx, onSave }) {
         <div>
           <div className="filter-label">Alert frequency</div>
           <div className="seg" role="tablist">
-            {["instant","daily","weekly"].map(f => (
-              <button key={f} className={frequency===f?"on":""} onClick={() => setFrequency(f)}>{f}</button>
-            ))}
+            {["instant","daily","weekly"].map(f => {
+              const disabled = f === "instant";
+              return (
+                <button
+                  key={f}
+                  className={frequency===f?"on":""}
+                  onClick={() => !disabled && setFrequency(f)}
+                  disabled={disabled}
+                  title={disabled ? "Real-time alerts coming soon" : undefined}
+                  style={disabled ? {opacity:0.45, cursor:'not-allowed'} : undefined}
+                >
+                  {f}{disabled && " (soon)"}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div>
           <div className="filter-label">Delivery</div>
           <div style={{display:'flex', gap:14}}>
             <label className="checkbox-row"><input type="checkbox" checked={delivery.includes("email")} onChange={() => toggleDelivery("email")}/><Icon.Mail size={14}/> Email</label>
-            <label className="checkbox-row"><input type="checkbox" checked={delivery.includes("slack")} onChange={() => toggleDelivery("slack")}/><Icon.Slack size={14}/> Slack / Discord</label>
+            <label className="checkbox-row"><input type="checkbox" checked={delivery.includes("slack")} onChange={() => toggleDelivery("slack")}/><Icon.Slack size={14}/> Slack</label>
           </div>
           {delivery.includes("slack") && (
             <input className="input" style={{marginTop:8}} placeholder="https://hooks.slack.com/services/..." value={slackUrl} onChange={e => setSlackUrl(e.target.value)}/>
@@ -123,9 +135,6 @@ function FilterSidebar({ tag, setTag, attrs, setAttrs, volumeMin, setVolumeMin, 
         <div className="filter-group">
           <div className="filter-label">
             <span>Selected Tag</span>
-            <button className="btn btn-ghost btn-sm" onClick={onSubscribeTag} style={{color:'hsl(221 83% 53%)', padding:'2px 6px'}}>
-              <Icon.Bell size={12}/> Subscribe
-            </button>
           </div>
           <select className="select" value={tag} onChange={e => { setTag(e.target.value); setAttrs([]); }}>
             {window.MARKETS_DATA.TAGS.map(t => <option key={t}>{t}</option>)}
