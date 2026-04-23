@@ -186,9 +186,6 @@ function WatchlistsPage({ watchlists, setWatchlists, onOpenInBrowse, onSubscribe
                         <button className="btn btn-sm" onClick={() => onOpenInBrowse(w.id)}>
                           <Icon.LayoutGrid size={12}/> Open in browse
                         </button>
-                        <button className={`btn btn-sm ${subscribed ? "" : "btn-primary"}`} onClick={() => onSubscribeList(w)}>
-                          <Icon.Bell size={12}/> {subscribed ? "Subscribed" : "Subscribe"}
-                        </button>
                         <div style={{flex:1}}/>
                         {!isSystem && (
                           <>

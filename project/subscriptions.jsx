@@ -53,7 +53,7 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription })
           <div style={{padding:'8px 16px', borderBottom:'1px solid hsl(var(--border))', display:'flex', gap:6}}>
             <div className="seg">
               <button className={filter==="all"?"on":""} onClick={() => setFilter("all")}>All</button>
-              <button className={filter==="market"?"on":""} onClick={() => setFilter("market")}>Markets</button>
+              <button className={filter==="market"?"on":""} onClick={() => setFilter("market")}>Contracts</button>
               <button className={filter==="tag"?"on":""} onClick={() => setFilter("tag")}>Tags</button>
             </div>
           </div>
@@ -84,7 +84,7 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription })
                   {s.contract}
                 </div>
                 <div className="row" style={{gap:4, flexWrap:'wrap'}}>
-                  <Badge variant={s.marketId ? "gray" : "blue"}>{s.marketId ? "Market" : "Tag"}</Badge>
+                  <Badge variant={s.marketId ? "gray" : "blue"}>{s.marketId ? "Contract" : "Tag"}</Badge>
                   <Badge variant="blue">{s.tag}</Badge>
                   {s.attrs.map(a => <Badge key={a}>{a}</Badge>)}
                   <Badge variant="amber">{s.frequency}</Badge>
@@ -95,7 +95,7 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription })
               <div className="empty">
                 {subscriptions.length === 0
                   ? "No subscriptions yet. Create one below, or subscribe from the Browse page."
-                  : `No ${filter === "market" ? "market" : "tag"} subscriptions.`}
+                  : `No ${filter === "market" ? "contract" : "tag"} subscriptions.`}
                 <div style={{marginTop:12}}>
                   <button className="btn btn-primary btn-sm" onClick={() => setNewSubOpen(true)}>
                     <Icon.Plus size={12}/> New subscription
@@ -130,13 +130,7 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription })
                 <div style={{fontSize:12, color:'hsl(var(--muted-foreground))', marginTop:2}}>{editBuffer.contract}</div>
               </div>
               <hr className="sep"/>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
-                <div>
-                  <div className="filter-label">Tag</div>
-                  <select className="select" value={editBuffer.tag} onChange={e => setEditBuffer({...editBuffer, tag: e.target.value, attrs: []})}>
-                    {window.MARKETS_DATA.TAGS.filter(t => t!=="All").map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
+              {editBuffer.marketId ? (
                 <div>
                   <div className="filter-label">Alert frequency</div>
                   <div className="seg">
@@ -157,22 +151,53 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription })
                     })}
                   </div>
                 </div>
-              </div>
-              <div>
-                <div className="filter-label">Conditional attributes</div>
-                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px 12px'}}>
-                  {(window.MARKETS_DATA.CONDITIONAL_ATTRS[editBuffer.tag]||[]).map(a => (
-                    <label key={a} className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={editBuffer.attrs.includes(a)}
-                        onChange={() => setEditBuffer({...editBuffer, attrs: editBuffer.attrs.includes(a) ? editBuffer.attrs.filter(x=>x!==a) : [...editBuffer.attrs, a]})}
-                      />
-                      {a}
-                    </label>
-                  ))}
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+                    <div>
+                      <div className="filter-label">Tag</div>
+                      <select className="select" value={editBuffer.tag} onChange={e => setEditBuffer({...editBuffer, tag: e.target.value, attrs: []})}>
+                        {window.MARKETS_DATA.TAGS.filter(t => t!=="All").map(t => <option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div className="filter-label">Alert frequency</div>
+                      <div className="seg">
+                        {["instant","daily","weekly"].map(f => {
+                          const disabled = f === "instant";
+                          return (
+                            <button
+                              key={f}
+                              className={editBuffer.frequency===f?"on":""}
+                              onClick={() => !disabled && setEditBuffer({...editBuffer, frequency:f})}
+                              disabled={disabled}
+                              title={disabled ? "Real-time alerts coming soon" : undefined}
+                              style={disabled ? {opacity:0.45, cursor:'not-allowed'} : undefined}
+                            >
+                              {f}{disabled && " (soon)"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="filter-label">Conditional attributes</div>
+                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px 12px'}}>
+                      {(window.MARKETS_DATA.CONDITIONAL_ATTRS[editBuffer.tag]||[]).map(a => (
+                        <label key={a} className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={editBuffer.attrs.includes(a)}
+                            onChange={() => setEditBuffer({...editBuffer, attrs: editBuffer.attrs.includes(a) ? editBuffer.attrs.filter(x=>x!==a) : [...editBuffer.attrs, a]})}
+                          />
+                          {a}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
               <hr className="sep"/>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12}}>
                 <div>

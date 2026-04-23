@@ -1,5 +1,180 @@
 // Browse page: table with inline expand, split view, compact density
 
+// Helper: make an ag-grid cell renderer from a React component
+function makeReactRenderer(Component) {
+  return class {
+    init(params) {
+      this.eGui = document.createElement("div");
+      this.eGui.style.display = "contents";
+      this.root = ReactDOM.createRoot(this.eGui);
+      this.root.render(<Component {...params}/>);
+    }
+    getGui() { return this.eGui; }
+    refresh(params) {
+      this.root.render(<Component {...params}/>);
+      return true;
+    }
+    destroy() {
+      // Defer unmount to next tick to avoid "unmount during render" warnings
+      const r = this.root;
+      setTimeout(() => r.unmount(), 0);
+    }
+  };
+}
+
+const EventRenderer = makeReactRenderer((p) => (
+  <span className="truncate" title={p.value}>{p.value}</span>
+));
+const ContractRenderer = makeReactRenderer((p) => (
+  <span className="truncate" title={p.value}>{p.value}</span>
+));
+const TrendRenderer = makeReactRenderer((p) => <Trend value={p.value}/>);
+const PercentRenderer = makeReactRenderer((p) => <span className="mono tnum">{p.value}%</span>);
+const MoneyRenderer = makeReactRenderer((p) => <span className="mono tnum">{fmt$(p.value)}</span>);
+const MonoRenderer = makeReactRenderer((p) => <span className="mono tnum">{p.value}</span>);
+const ZRenderer = makeReactRenderer((p) => <ZCell value={p.value}/>);
+const AlertRenderer = makeReactRenderer((p) => (
+  <button
+    className={`bell-btn ${p.data.__subscribed ? "active" : ""}`}
+    onClick={(e) => { e.stopPropagation(); p.context.onSubscribe(p.data); }}
+    title="Subscribe"
+  >
+    <Icon.Bell size={15} fill={p.data.__subscribed ? "currentColor" : "none"}/>
+  </button>
+));
+
+function MarketsGrid({ rows, selectedId, onSelectRow, selected, setSelected, onSubscribe, isSubscribed }) {
+  const containerRef = React.useRef(null);
+  const apiRef = React.useRef(null);
+  const ctxRef = React.useRef({ onSubscribe, onSelectRow, selectedId });
+
+  // Keep latest callbacks available to grid callbacks without re-creating grid
+  React.useEffect(() => {
+    ctxRef.current.onSubscribe = onSubscribe;
+    ctxRef.current.onSelectRow = onSelectRow;
+    ctxRef.current.selectedId = selectedId;
+    if (apiRef.current) {
+      apiRef.current.setGridOption("context", { onSubscribe });
+      apiRef.current.redrawRows();
+    }
+  }, [onSubscribe, onSelectRow, selectedId]);
+
+  // Build row data with subscription flag
+  const rowData = React.useMemo(
+    () => rows.map(r => ({ ...r, __subscribed: isSubscribed(r.id) })),
+    [rows, isSubscribed]
+  );
+
+  // Create grid once on mount
+  React.useEffect(() => {
+    const columnDefs = [
+      {
+        headerName: "",
+        checkboxSelection: true,
+        headerCheckboxSelection: true,
+        headerCheckboxSelectionFilteredOnly: true,
+        width: 40, minWidth: 40, maxWidth: 44,
+        pinned: "left",
+        sortable: false, resizable: false, suppressMovable: true,
+        cellStyle: { paddingLeft: 10, paddingRight: 4 },
+      },
+      { headerName: "Event", field: "event", flex: 1.2, minWidth: 180,
+        cellRenderer: EventRenderer, tooltipField: "event" },
+      { headerName: "Contract", field: "contract", flex: 1.4, minWidth: 200,
+        cellRenderer: ContractRenderer, tooltipField: "contract" },
+      { headerName: "Expiry Date", field: "expiry", width: 110,
+        headerClass: "ag-center-header",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: MonoRenderer },
+      { headerName: "Prob Chg", field: "probChg", width: 110,
+        headerClass: "ag-center-header",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: TrendRenderer,
+        comparator: (a, b) => Number(a) - Number(b) },
+      { headerName: "Prior Prob", field: "priorProb", width: 110,
+        headerClass: "ag-center-header",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: PercentRenderer },
+      { headerName: "Curr Prob", field: "currProb", width: 110,
+        headerClass: "ag-center-header",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: PercentRenderer },
+      { headerName: "Total Volume", field: "volume", width: 130,
+        headerClass: "ag-center-header",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: MoneyRenderer,
+        comparator: (a, b) => Number(a) - Number(b) },
+      { headerName: "Z Score", field: "zScore", width: 100,
+        headerClass: "ag-center-header",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: ZRenderer,
+        comparator: (a, b) => Number(a) - Number(b) },
+      { headerName: "Alert", field: "__subscribed", width: 80,
+        sortable: false, resizable: false,
+        headerClass: "ag-center-header",
+        cellRenderer: AlertRenderer,
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" } },
+    ];
+
+    const gridOptions = {
+      columnDefs,
+      rowData: [],
+      defaultColDef: {
+        sortable: true,
+        resizable: true,
+        suppressMenu: true,
+      },
+      rowSelection: "multiple",
+      suppressRowClickSelection: true,
+      rowHeight: 32,
+      headerHeight: 30,
+      animateRows: false,
+      suppressCellFocus: true,
+      getRowId: (p) => p.data.id,
+      context: { onSubscribe: ctxRef.current.onSubscribe },
+      rowClassRules: {
+        "ag-row-focused-selected": (p) => p.data && p.data.id === ctxRef.current.selectedId,
+      },
+      onRowClicked: (e) => {
+        const tgt = e.event && e.event.target;
+        if (tgt && tgt.closest && (tgt.closest(".ag-selection-checkbox") || tgt.closest(".bell-btn"))) return;
+        if (e.data) ctxRef.current.onSelectRow(e.data.id);
+      },
+      onSelectionChanged: (e) => {
+        const ids = new Set();
+        e.api.forEachNode(n => { if (n.isSelected()) ids.add(n.data.id); });
+        setSelected(ids);
+      },
+    };
+
+    const api = agGrid.createGrid(containerRef.current, gridOptions);
+    apiRef.current = api;
+    return () => api.destroy();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Push row data on change
+  React.useEffect(() => {
+    const api = apiRef.current;
+    if (!api) return;
+    api.setGridOption("rowData", rowData);
+  }, [rowData]);
+
+  // Sync external selection Set -> grid
+  React.useEffect(() => {
+    const api = apiRef.current;
+    if (!api) return;
+    api.forEachNode(n => {
+      const shouldSelect = selected.has(n.data.id);
+      if (n.isSelected() !== shouldSelect) n.setSelected(shouldSelect, false, true);
+    });
+  }, [selected, rowData]);
+
+  return (
+    <div ref={containerRef} className="ag-theme-quartz ag-pm" style={{ width: "100%", height: "100%" }}/>
+  );
+}
+
 function MarketRow({ m, expanded, onToggle, selected, onSelect, subscribed, onSubscribe, checked, onToggleSelect }) {
   return (
     <>
@@ -231,43 +406,16 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
                     </div>
                   </div>
                 </div>
-                <div style={{overflow:'auto', flex:1}}>
-                  <table className="tbl tbl-markets">
-                    <thead>
-                      <tr>
-                        <th style={{width:36}}>
-                          <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} style={{accentColor:'hsl(var(--primary))', cursor:'pointer'}}/>
-                        </th>
-                        <th>Event</th>
-                        <th>Contract</th>
-                        <th className="num">Expiry Date</th>
-                        <th className="num">Prob Chg</th>
-                        <th className="num">Prior Prob</th>
-                        <th className="num">Curr Prob</th>
-                        <th className="num">Total Volume</th>
-                        <th className="num">Z Score</th>
-                        <th className="num">Alert</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map(m => (
-                        <MarketRow
-                          key={m.id}
-                          m={m}
-                          expanded={false}
-                          onToggle={() => setSelectedId(m.id)}
-                          selected={selectedId === m.id}
-                          subscribed={isSubscribed(m.id)}
-                          onSubscribe={handleSubscribe}
-                          checked={selected.has(m.id)}
-                          onToggleSelect={toggleSelect}
-                        />
-                      ))}
-                      {filtered.length === 0 && (
-                        <tr><td colSpan={10}><div className="empty">No markets match the current filters.</div></td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div style={{flex:1, minHeight:0}}>
+                  <MarketsGrid
+                    rows={filtered}
+                    selectedId={selectedId}
+                    onSelectRow={setSelectedId}
+                    selected={selected}
+                    setSelected={setSelected}
+                    onSubscribe={handleSubscribe}
+                    isSubscribed={isSubscribed}
+                  />
                 </div>
               </div>
             </div>

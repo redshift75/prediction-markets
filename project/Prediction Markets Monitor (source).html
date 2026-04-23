@@ -7,9 +7,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="styles.css?v=9"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-quartz.css"/>
+<link rel="stylesheet" href="styles.css?v=3"/>
+
+<template id="__bundler_thumbnail" data-bg-color="#f8fafc">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#f8fafc"/>
+    <rect x="360" y="240" width="480" height="60" rx="8" fill="#e2e8f0"/>
+    <rect x="360" y="320" width="480" height="40" rx="6" fill="#e2e8f0"/>
+    <rect x="360" y="380" width="360" height="40" rx="6" fill="#e2e8f0"/>
+    <rect x="360" y="440" width="420" height="40" rx="6" fill="#e2e8f0"/>
+    <g transform="translate(540 540)">
+      <circle cx="60" cy="30" r="28" fill="#3b82f6"/>
+      <path d="M48 30 L56 38 L74 22" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+    <text x="600" y="640" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="600" fill="#64748b">PM Monitor</text>
+  </svg>
+</template>
 </head>
 <body>
 <div id="root"></div>
@@ -18,12 +31,10 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.min.js"></script>
-
-<script src="data.js?v=2"></script>
+<script src="data.js"></script>
 <script type="text/babel" src="components.jsx"></script>
 <script type="text/babel" src="filters.jsx"></script>
-<script type="text/babel" src="browse.jsx?v=3"></script>
+<script type="text/babel" src="browse.jsx"></script>
 <script type="text/babel" src="watchlists.jsx"></script>
 <script type="text/babel" src="subscriptions.jsx"></script>
 
@@ -38,43 +49,40 @@ window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
 const { useState, useEffect } = React;
 
-function TopNav({ page, setPage, subCount, watchlistCount }) {
+function Sidebar({ page, setPage, subCount, watchlistCount }) {
   return (
-    <header className="topnav">
-      <div className="topnav-inner">
-        <div className="topnav-brand">
-          <div className="topnav-brand-logo"><Icon.Activity size={18} /></div>
-          <div className="topnav-brand-title">PM Monitor</div>
-        </div>
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <div className="sidebar-brand-logo"><Icon.Activity size={18} /></div>
+        <div className="sidebar-brand-title">PM Monitor</div>
+      </div>
+      <div className="nav-section-label">Workspace</div>
+      <button className={`nav-item ${page === "browse" ? "active" : ""}`} onClick={() => setPage("browse")}>
+        <Icon.LayoutGrid size={15} /> Explore
+      </button>
+      <button className={`nav-item ${page === "subscriptions" ? "active" : ""}`} onClick={() => setPage("subscriptions")}>
+        <Icon.Bell size={15} /> Subscriptions
+        <span className="count">{subCount}</span>
+      </button>
+      <button className={`nav-item ${page === "watchlists" ? "active" : ""}`} onClick={() => setPage("watchlists")}>
+        <Icon.LayoutGrid size={15} /> Watchlists
+        <span className="count">{watchlistCount}</span>
+      </button>
+      <button className="nav-item" onClick={(e) => e.preventDefault()} style={{ opacity: 0.6 }}>
+        <Icon.AlertCircle size={15} /> Alert history
+      </button>
 
-        <nav className="topnav-links">
-          <button className={`topnav-item ${page === "browse" ? "active" : ""}`} onClick={() => setPage("browse")}>
-            <Icon.LayoutGrid size={14} /> Explore
-          </button>
-          <button className={`topnav-item ${page === "subscriptions" ? "active" : ""}`} onClick={() => setPage("subscriptions")}>
-            <Icon.Bell size={14} /> Subscriptions
-            <span className="count">{subCount}</span>
-          </button>
-          <button className={`topnav-item ${page === "watchlists" ? "active" : ""}`} onClick={() => setPage("watchlists")}>
-            <Icon.Bookmark size={14} /> Watchlists
-            <span className="count">{watchlistCount}</span>
-          </button>
-        </nav>
+      <div className="nav-section-label">Account</div>
+      <button className="nav-item" style={{ opacity: 0.6 }}><Icon.Settings size={15} /> Settings</button>
 
-        <div className="topnav-right">
-          <button className="topnav-item topnav-icon" style={{ opacity: 0.7 }} title="Settings">
-            <Icon.Settings size={15} />
-          </button>
-          <div className="topnav-user">
-            <div className="topnav-avatar">AK</div>
-            <div className="topnav-user-text">
-              <div className="topnav-user-name">Alex Kim</div>
-              <div className="topnav-user-email">alex@firm.com</div>
-            </div>
-          </div>
+      <div style={{ marginTop: 'auto', padding: '12px 10px', borderTop: '1px solid hsl(var(--border))', fontSize: 12, color: 'hsl(var(--muted-foreground))', display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 999, background: 'hsl(221 83% 53%)', color: 'white', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 600 }}>AK</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: 'hsl(var(--foreground))', fontWeight: 500, fontSize: 12.5 }}>Alex Kim</div>
+          <div className="truncate">alex@firm.com</div>
         </div>
       </div>
-    </header>);
+    </aside>);
 }
 
 function TweaksPanel() {
@@ -141,20 +149,20 @@ function App() {
   const titleMap = {
     browse: { title: "Explore Contracts", sub: "Daily performance tracking and anomaly detection" },
     subscriptions: { title: "Subscription management", sub: "Edit thresholds, tags, and delivery for your alerts" },
-    watchlists: { title: "Watchlist Manager", sub: "Organize contracts into reusable custom lists" }
+    watchlists: { title: "Watchlists", sub: "Organize markets into reusable custom lists" }
   };
   const t = titleMap[page];
 
   return (
     <div className="app" data-screen-label={page === "browse" ? "Browse" : page === "watchlists" ? "Watchlists" : "Subscriptions"}>
-      <TopNav page={page} setPage={setPage} subCount={subscriptions.filter((s) => s.active).length} watchlistCount={watchlists.length} />
+      <Sidebar page={page} setPage={setPage} subCount={subscriptions.filter((s) => s.active).length} watchlistCount={watchlists.length} />
       <div className="main">
-        <div className="subheader">
+        <div className="topbar">
           <div>
-            <div className="subheader-title">{t.title}</div>
-            <div className="subheader-sub">{t.sub}</div>
+            <div className="topbar-title">{t.title}</div>
+            <div className="topbar-sub">{t.sub}</div>
           </div>
-          <div className="subheader-actions">
+          <div className="topbar-actions">
             {page === "browse" &&
             <>
                 <button className="btn btn-sm" onClick={() => window.dispatchEvent(new CustomEvent('pm:subscribe-tag'))} style={{ whiteSpace: 'nowrap' }}>
