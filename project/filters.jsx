@@ -2,8 +2,14 @@
 
 function SubscribeDialog({ open, onClose, market, tagCtx, onSave }) {
   const isTagMode = !market;
-  const [tag, setTag] = React.useState(tagCtx?.tag || market?.tag || "Politics");
-  const [attrs, setAttrs] = React.useState(tagCtx?.attrs ? [...tagCtx.attrs] : (market ? [market.attr] : []));
+  const initTags = () => {
+    if (tagCtx?.tags && tagCtx.tags.length) return [...tagCtx.tags];
+    if (tagCtx?.tag && tagCtx.tag !== "All") return [tagCtx.tag];
+    if (market?.tag) return [market.tag];
+    return ["Politics"];
+  };
+  const [tags, setTags] = React.useState(initTags);
+  const [attrs, setAttrs] = React.useState(tagCtx?.attrs ? [...tagCtx.attrs] : market ? [market.attr] : []);
   const [probChg, setProbChg] = React.useState(10);
   const [zThresh, setZThresh] = React.useState(3.0);
   const [priceCross, setPriceCross] = React.useState("");
@@ -13,28 +19,32 @@ function SubscribeDialog({ open, onClose, market, tagCtx, onSave }) {
 
   React.useEffect(() => {
     if (!open) return;
-    setTag(tagCtx?.tag || market?.tag || "Politics");
-    setAttrs(tagCtx?.attrs ? [...tagCtx.attrs] : (market ? [market.attr] : []));
+    setTags(initTags());
+    setAttrs(tagCtx?.attrs ? [...tagCtx.attrs] : market ? [market.attr] : []);
   }, [open, market, tagCtx]);
 
-  const toggleAttr = (a) => setAttrs(prev => prev.includes(a) ? prev.filter(x=>x!==a) : [...prev, a]);
-  const toggleDelivery = (d) => setDelivery(prev => prev.includes(d) ? prev.filter(x=>x!==d) : [...prev, d]);
+  const toggleTag = (t) => setTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
-  const attrOptions = window.MARKETS_DATA.CONDITIONAL_ATTRS[tag] || [];
+  const toggleAttr = (a) => setAttrs((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
+  const toggleDelivery = (d) => setDelivery((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
+
+  const attrOptions = Array.from(new Set(tags.flatMap((t) => window.MARKETS_DATA.CONDITIONAL_ATTRS[t] || [])));
 
   function handleSave() {
+    const tagLabel = tags.length === 1 ? tags[0] : tags.length > 1 ? `${tags.length} tags` : "All";
+    const tagDisplay = tags.join(", ") || "All";
     onSave({
       marketId: market?.id || null,
-      event: market ? market.event : `Tag: ${tag}${attrs.length ? " / " + attrs.join(", ") : ""}`,
-      contract: market ? market.contract : `All markets matching tag "${tag}"${attrs.length ? ` · attrs: ${attrs.join(", ")}` : ""}`,
-      tag, attrs,
+      event: market ? market.event : `Tag: ${tagLabel}${attrs.length ? " / " + attrs.join(", ") : ""}`,
+      contract: market ? market.contract : `All markets matching tags "${tagDisplay}"${attrs.length ? ` · attrs: ${attrs.join(", ")}` : ""}`,
+      tag: tags[0] || "All", tags, attrs,
       probChgThreshold: Number(probChg) || 0,
       zThreshold: Number(zThresh) || 0,
       priceCrosses: priceCross === "" ? null : Number(priceCross),
       frequency,
       delivery,
       slackWebhook: slackUrl,
-      active: true,
+      active: true
     });
     onClose();
   }
@@ -46,146 +56,165 @@ function SubscribeDialog({ open, onClose, market, tagCtx, onSave }) {
           {isTagMode ? "Subscribe to tag" : "Subscribe to contract"}
         </div>
         <div className="dialog-sub">
-          {isTagMode
-            ? "Receive alerts for all contracts matching this tag and attributes."
-            : market?.contract}
+          {isTagMode ?
+          "Receive alerts for all contracts matching this tag and attributes." :
+          market?.contract}
         </div>
       </div>
       <div className="dialog-body">
-        {isTagMode && (
-          <div>
-            <div className="filter-label">Tag</div>
-            <select className="select" value={tag} onChange={e => { setTag(e.target.value); setAttrs([]); }}>
-              {window.MARKETS_DATA.TAGS.filter(t => t !== "All").map(t => <option key={t}>{t}</option>)}
-            </select>
-          </div>
-        )}
-        {isTagMode && attrOptions.length > 0 && (
-          <div>
-            <div className="filter-label">Conditional attributes</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px 12px'}}>
-              {attrOptions.map(a => (
-                <label key={a} className="checkbox-row">
-                  <input type="checkbox" checked={attrs.includes(a)} onChange={() => toggleAttr(a)}/>
-                  {a}
+        {isTagMode &&
+        <div>
+            <div className="filter-label">Tags <span className="filter-hint">select one or more</span></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', maxHeight: 180, overflowY: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 6, padding: '6px 8px', background: 'hsl(var(--background))' }}>
+              {window.MARKETS_DATA.TAGS.filter((t) => t !== "All").map((t) =>
+            <label key={t} className="checkbox-row">
+                  <input type="checkbox" checked={tags.includes(t)} onChange={() => toggleTag(t)} />
+                  {t}
                 </label>
-              ))}
+            )}
             </div>
           </div>
-        )}
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+        }
+        {isTagMode && attrOptions.length > 0 &&
+        <div>
+            <div className="filter-label">Subcategory Tag</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
+              {attrOptions.map((a) =>
+            <label key={a} className="checkbox-row">
+                  <input type="checkbox" checked={attrs.includes(a)} onChange={() => toggleAttr(a)} />
+                  {a}
+                </label>
+            )}
+            </div>
+          </div>
+        }
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <div className="filter-label">Prob change threshold <span className="filter-hint">%</span></div>
-            <input className="input mono" type="number" value={probChg} onChange={e => setProbChg(e.target.value)}/>
+            <input className="input mono" type="number" value={probChg} onChange={(e) => setProbChg(e.target.value)} />
           </div>
           <div>
             <div className="filter-label">Z-score threshold <span className="filter-hint">abs</span></div>
-            <input className="input mono" type="number" step="0.1" value={zThresh} onChange={e => setZThresh(e.target.value)}/>
+            <input className="input mono" type="number" step="0.1" value={zThresh} onChange={(e) => setZThresh(e.target.value)} />
           </div>
         </div>
         <div>
           <div className="filter-label">Price crosses <span className="filter-hint">optional · probability %</span></div>
-          <input className="input mono" type="number" placeholder="e.g. 50" value={priceCross} onChange={e => setPriceCross(e.target.value)}/>
+          <input className="input mono" type="number" placeholder="e.g. 50" value={priceCross} onChange={(e) => setPriceCross(e.target.value)} />
         </div>
         <div>
           <div className="filter-label">Alert frequency</div>
           <div className="seg" role="tablist">
-            {["instant","daily","weekly"].map(f => {
+            {["instant", "daily"].map((f) => {
               const disabled = f === "instant";
               return (
                 <button
                   key={f}
-                  className={frequency===f?"on":""}
+                  className={frequency === f ? "on" : ""}
                   onClick={() => !disabled && setFrequency(f)}
                   disabled={disabled}
                   title={disabled ? "Real-time alerts coming soon" : undefined}
-                  style={disabled ? {opacity:0.45, cursor:'not-allowed'} : undefined}
-                >
+                  style={disabled ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}>
+                  
                   {f}{disabled && " (soon)"}
-                </button>
-              );
+                </button>);
+
             })}
           </div>
         </div>
         <div>
           <div className="filter-label">Delivery</div>
-          <div style={{display:'flex', gap:14}}>
-            <label className="checkbox-row"><input type="checkbox" checked={delivery.includes("email")} onChange={() => toggleDelivery("email")}/><Icon.Mail size={14}/> Email</label>
-            <label className="checkbox-row"><input type="checkbox" checked={delivery.includes("slack")} onChange={() => toggleDelivery("slack")}/><Icon.Slack size={14}/> Slack</label>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <label className="checkbox-row"><input type="checkbox" checked={delivery.includes("email")} onChange={() => toggleDelivery("email")} /><Icon.Mail size={14} /> Email</label>
+            <label className="checkbox-row"><input type="checkbox" checked={delivery.includes("slack")} onChange={() => toggleDelivery("slack")} /><Icon.Slack size={14} /> Slack</label>
           </div>
-          {delivery.includes("slack") && (
-            <input className="input" style={{marginTop:8}} placeholder="https://hooks.slack.com/services/..." value={slackUrl} onChange={e => setSlackUrl(e.target.value)}/>
-          )}
+          {delivery.includes("slack") &&
+          <input className="input" style={{ marginTop: 8 }} placeholder="https://hooks.slack.com/services/..." value={slackUrl} onChange={(e) => setSlackUrl(e.target.value)} />
+          }
         </div>
       </div>
       <div className="dialog-footer">
         <button className="btn" onClick={onClose}>Cancel</button>
         <button className="btn btn-primary" onClick={handleSave}>Create subscription</button>
       </div>
-    </Dialog>
-  );
+    </Dialog>);
+
 }
 
-function FilterSidebar({ tag, setTag, attrs, setAttrs, volumeMin, setVolumeMin, probChgMin, setProbChgMin, zMin, setZMin, onSubscribeTag }) {
-  const attrOptions = window.MARKETS_DATA.CONDITIONAL_ATTRS[tag] || window.MARKETS_DATA.CONDITIONAL_ATTRS.All;
-  const toggle = (a) => setAttrs(prev => prev.includes(a) ? prev.filter(x=>x!==a) : [...prev, a]);
+function FilterSidebar({ tags, setTags, attrs, setAttrs, volumeMin, setVolumeMin, probChgMin, setProbChgMin, zMin, setZMin, onSubscribeTag }) {
+  const allTags = window.MARKETS_DATA.TAGS.filter((t) => t !== "All");
+  const effectiveTags = tags.length ? tags : allTags;
+  const attrOptions = Array.from(new Set(effectiveTags.flatMap((t) => window.MARKETS_DATA.CONDITIONAL_ATTRS[t] || [])));
+  const toggle = (a) => setAttrs((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
+  const toggleTag = (t) => setTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
   return (
     <div className="card">
       <div className="card-body">
+        <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', paddingBottom: 12, marginBottom: 14, borderBottom: '1px solid hsl(var(--border))' }}>Filter Contracts by Attribute</div>
         <div className="filter-group">
-          <div className="filter-label">
-            <span>Selected Tag</span>
+          <div className="filter-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <span>Category Tags</span>
+            <button className="btn btn-primary btn-sm" onClick={() => window.dispatchEvent(new CustomEvent('pm:subscribe-tag'))} style={{ whiteSpace: 'nowrap', fontSize: "10px" }}>
+              <Icon.Plus size={12} /> Subscribe to a Tag
+            </button>
           </div>
-          <select className="select" value={tag} onChange={e => { setTag(e.target.value); setAttrs([]); }}>
-            {window.MARKETS_DATA.TAGS.map(t => <option key={t}>{t}</option>)}
-          </select>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 180, overflowY: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 6, padding: '6px 8px', background: 'hsl(var(--background))' }}>
+            {allTags.map((t) =>
+            <label key={t} className="checkbox-row">
+                <input type="checkbox" checked={tags.includes(t)} onChange={() => toggleTag(t)} />
+                {t}
+              </label>
+            )}
+          </div>
+          {tags.length === 0 && <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>None selected — showing all tags</div>}
         </div>
         <div className="filter-group">
-          <div className="filter-label">Conditional Attribute</div>
-          <div style={{display:'flex', flexDirection:'column', gap:2}}>
-            {attrOptions.map(a => (
-              <label key={a} className="checkbox-row">
-                <input type="checkbox" checked={attrs.includes(a)} onChange={() => toggle(a)}/>
+          <div className="filter-label">Subcategory Tag</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 180, overflowY: 'auto', border: '1px solid hsl(var(--border))', borderRadius: 6, padding: '6px 8px', background: 'hsl(var(--background))' }}>
+            {attrOptions.map((a) =>
+            <label key={a} className="checkbox-row">
+                <input type="checkbox" checked={attrs.includes(a)} onChange={() => toggle(a)} />
                 {a}
               </label>
-            ))}
+            )}
           </div>
         </div>
+        <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', paddingBottom: 12, marginBottom: 14, marginTop: 4, borderBottom: '1px solid hsl(var(--border))' }}>Filter Contracts by Market Activity</div>
         <div className="filter-group">
-          <div className="filter-label">Volume Threshold</div>
-          <input className="input mono" type="number" value={volumeMin} onChange={e => setVolumeMin(e.target.value)}/>
+          <div className="filter-label">Minimum $ Contract Volume</div>
+          <input className="input mono" type="number" value={volumeMin} onChange={(e) => setVolumeMin(e.target.value)} />
         </div>
         <div className="filter-group">
-          <div className="filter-label">Prob Change Threshold</div>
-          <input className="input mono" type="number" value={probChgMin} onChange={e => setProbChgMin(e.target.value)}/>
+          <div className="filter-label">Minimum Change in Contract Probability</div>
+          <input className="input mono" type="number" value={probChgMin} onChange={(e) => setProbChgMin(e.target.value)} />
         </div>
-        <div className="filter-group" style={{marginBottom:0}}>
-          <div className="filter-label">Z Threshold</div>
-          <input className="input mono" type="number" value={zMin} onChange={e => setZMin(e.target.value)}/>
+        <div className="filter-group" style={{ marginBottom: 0 }}>
+          <div className="filter-label">Minimum Z Score of Probability Change</div>
+          <input className="input mono" type="number" value={zMin} onChange={(e) => setZMin(e.target.value)} />
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 function TagChips({ tag, setTag, attrs, setAttrs }) {
   const tags = window.MARKETS_DATA.TAGS;
   const attrOptions = window.MARKETS_DATA.CONDITIONAL_ATTRS[tag] || [];
-  const toggle = (a) => setAttrs(prev => prev.includes(a) ? prev.filter(x=>x!==a) : [...prev, a]);
+  const toggle = (a) => setAttrs((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
   return (
     <div className="chips">
-      {tags.map(t => (
-        <button key={t} className={`chip ${tag===t?"active":""}`} onClick={() => { setTag(t); setAttrs([]); }}>{t}</button>
-      ))}
-      {attrOptions.length > 0 && <span style={{width:1, height:20, background:'hsl(var(--border))', margin:'0 4px'}}/>}
-      {attrOptions.map(a => (
-        <button key={a} className={`chip ${attrs.includes(a)?"active":""}`} onClick={() => toggle(a)}>
-          {attrs.includes(a) && <Icon.X size={10}/>}
+      {tags.map((t) =>
+      <button key={t} className={`chip ${tag === t ? "active" : ""}`} onClick={() => {setTag(t);setAttrs([]);}}>{t}</button>
+      )}
+      {attrOptions.length > 0 && <span style={{ width: 1, height: 20, background: 'hsl(var(--border))', margin: '0 4px' }} />}
+      {attrOptions.map((a) =>
+      <button key={a} className={`chip ${attrs.includes(a) ? "active" : ""}`} onClick={() => toggle(a)}>
+          {attrs.includes(a) && <Icon.X size={10} />}
           {a}
         </button>
-      ))}
-    </div>
-  );
+      )}
+    </div>);
+
 }
 
 Object.assign(window, { SubscribeDialog, FilterSidebar, TagChips });

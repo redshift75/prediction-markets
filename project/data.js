@@ -182,10 +182,13 @@ MARKETS.forEach((m, i) => {
   m.url = `https://polymarket.com/market/${_slugify(m.contract)}`;
   // Market has been live for 20–120 days (deterministic)
   const liveDays = 20 + ((i * 13 + 7) % 101);
+  m.liveDays = liveDays;
   m.avgDailyVolume = Math.round(m.volume / liveDays);
   // Avg trade size varies by volume bucket, $40–$420
   m.avgTradeSize = 40 + ((i * 37 + m.volume) % 380);
   m.tradesPerDay = Math.max(1, Math.round(m.avgDailyVolume / m.avgTradeSize));
+  // Total transactions in the contract — frequency of repricings
+  m.numTrades = m.tradesPerDay * liveDays;
 });
 
 // "Today" reference date for this prototype (matches latest PRICE_HISTORY point).
@@ -221,6 +224,10 @@ const WATCHLISTS = [
   { id: "all_markets", name: "All Contracts", system: true, marketIds: null, filters: { zMin: 0, volumeMin: 0, probChgMin: 0 }, createdAt: "—" },
   { id: "biggest_movers", name: "Biggest Movers", system: true, marketIds: null, filters: { zMin: 3, volumeMin: 10000, probChgMin: 10 }, createdAt: "—" },
   { id: "new_contracts", name: "New Contracts", system: true, marketIds: null, createdWithinDays: 1, filters: { zMin: 0, volumeMin: 0, probChgMin: 0 }, createdAt: "—" },
+  { id: "expired_contracts", name: "Expired Contracts", system: true, marketIds: null, expiredOnly: true, filters: { zMin: 0, volumeMin: 0, probChgMin: 0 }, createdAt: "—" },
+  { id: "bam_macro", name: "BAM Macro Watch", system: true, bam: true, marketIds: ["m3", "m16", "m17", "m18"], createdAt: "—" },
+  { id: "bam_crypto", name: "BAM Crypto Signals", system: true, bam: true, marketIds: ["m4", "m6", "m19", "m20", "m21"], createdAt: "—" },
+  { id: "bam_geopolitics", name: "BAM Geopolitics", system: true, bam: true, marketIds: ["m7", "m11", "m14", "m15"], createdAt: "—" },
   { id: "wl_earn", name: "Earnings & Fed", marketIds: ["m1", "m2", "m11"], createdAt: "9/18/2024" },
   { id: "wl_elec", name: "Election Watch", marketIds: ["m5", "m6", "m9"], createdAt: "9/20/2024" },
 ];

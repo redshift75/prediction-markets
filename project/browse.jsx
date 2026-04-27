@@ -25,10 +25,37 @@ function makeReactRenderer(Component) {
 const EventRenderer = makeReactRenderer((p) => (
   <span className="truncate" title={p.value}>{p.value}</span>
 ));
+const VenueRenderer = makeReactRenderer((p) => {
+  const id = p.data && p.data.id ? String(p.data.id) : "";
+  const idNum = parseInt(id.replace(/\D/g, ""), 10) || 0;
+  const venue = p.data && p.data.venue ? p.data.venue : (idNum % 2 === 0 ? "Kalshi" : "Polymarket");
+  const r = (typeof window !== "undefined" && window.__resources) || {};
+  const src = venue === "Polymarket" ? (r.polymarketLogo || "assets/polymarket.png") : (r.kalshiLogo || "assets/kalshi.png");
+  return (
+    <img src={src} alt={venue} title={venue} style={{width:22, height:22, borderRadius:5, display:'block', objectFit:'cover'}}/>
+  );
+});
 const ContractRenderer = makeReactRenderer((p) => (
   <span className="truncate" title={p.value}>{p.value}</span>
 ));
 const TrendRenderer = makeReactRenderer((p) => <Trend value={p.value}/>);
+const TrendNoIconRenderer = makeReactRenderer((p) => {
+  const n = Number(p.value);
+  if (!Number.isFinite(n) || n === 0) return <span className="trend neutral tnum">0%</span>;
+  const cls = n > 0 ? "up" : "down";
+  return <span className={`trend ${cls} tnum`}>{n > 0 ? "+" : ""}{n}%</span>;
+});
+const IntRenderer = makeReactRenderer((p) => (
+  <span className="tnum">{Number(p.value || 0).toLocaleString("en-US")}</span>
+));
+const TagsRenderer = makeReactRenderer((p) => {
+  const d = p.data || {};
+  const parts = [];
+  if (d.tag) parts.push(d.tag);
+  if (Array.isArray(d.attrs)) parts.push(...d.attrs);
+  const text = parts.join(", ");
+  return <span className="truncate tag-list" title={text}>{text}</span>;
+});
 const PercentRenderer = makeReactRenderer((p) => <span className="mono tnum">{p.value}%</span>);
 const MoneyRenderer = makeReactRenderer((p) => <span className="mono tnum">{fmt$(p.value)}</span>);
 const MonoRenderer = makeReactRenderer((p) => <span className="mono tnum">{p.value}</span>);
@@ -43,7 +70,7 @@ const AlertRenderer = makeReactRenderer((p) => (
   </button>
 ));
 
-function MarketsGrid({ rows, selectedId, onSelectRow, selected, setSelected, onSubscribe, isSubscribed }) {
+function MarketsGrid({ rows, selectedId, onSelectRow, selected, setSelected, onSubscribe, isSubscribed, daysChange }) {
   const containerRef = React.useRef(null);
   const apiRef = React.useRef(null);
   const ctxRef = React.useRef({ onSubscribe, onSelectRow, selectedId });
@@ -78,40 +105,70 @@ function MarketsGrid({ rows, selectedId, onSelectRow, selected, setSelected, onS
         sortable: false, resizable: false, suppressMovable: true,
         cellStyle: { paddingLeft: 10, paddingRight: 4 },
       },
-      { headerName: "Event", field: "event", flex: 1.2, minWidth: 180,
+      { headerName: "Venue", field: "venue", width: 56, minWidth: 52, maxWidth: 72,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: VenueRenderer, sortable: true, resizable: false },
+      { headerName: "Event Contract", field: "event", flex: 1.4, minWidth: 200,
         cellRenderer: EventRenderer, tooltipField: "event" },
-      { headerName: "Contract", field: "contract", flex: 1.4, minWidth: 200,
+      { headerName: "Outcome", field: "contract", flex: 1.6, minWidth: 220,
         cellRenderer: ContractRenderer, tooltipField: "contract" },
-      { headerName: "Expiry Date", field: "expiry", width: 110,
-        headerClass: "ag-center-header",
-        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
-        cellRenderer: MonoRenderer },
-      { headerName: "Prob Chg", field: "probChg", width: 110,
-        headerClass: "ag-center-header",
-        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
-        cellRenderer: TrendRenderer,
-        comparator: (a, b) => Number(a) - Number(b) },
-      { headerName: "Prior Prob", field: "priorProb", width: 110,
-        headerClass: "ag-center-header",
+      { headerName: "Category Tag", colId: "categoryTag",
+        valueGetter: (p) => {
+          const d = p.data || {};
+          const parts = [];
+          if (d.tag) parts.push(d.tag);
+          if (Array.isArray(d.attrs)) parts.push(...d.attrs);
+          return parts.join(", ");
+        },
+        width: 160, minWidth: 120,
+        cellRenderer: TagsRenderer,
+        tooltipValueGetter: (p) => p.value },
+      { headerName: "Curr Prob", field: "currProb", width: 84,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
         cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
         cellRenderer: PercentRenderer },
-      { headerName: "Curr Prob", field: "currProb", width: 110,
-        headerClass: "ag-center-header",
+      { headerName: `${daysChange || 1}d Prob Chg`, field: "probChg", colId: "probChg", width: 96,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
         cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
-        cellRenderer: PercentRenderer },
-      { headerName: "Total Volume", field: "volume", width: 130,
-        headerClass: "ag-center-header",
-        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
-        cellRenderer: MoneyRenderer,
+        cellRenderer: TrendNoIconRenderer,
         comparator: (a, b) => Number(a) - Number(b) },
-      { headerName: "Z Score", field: "zScore", width: 100,
-        headerClass: "ag-center-header",
+      { headerName: `${daysChange || 1}d Z-Score`, field: "zScore", colId: "zScore", width: 84,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
         cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
         cellRenderer: ZRenderer,
         comparator: (a, b) => Number(a) - Number(b) },
-      { headerName: "Alert", field: "__subscribed", width: 80,
+      { headerName: `${daysChange || 1}d Prior Prob`, field: "priorProb", colId: "priorProb", width: 92,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: PercentRenderer },
+      { headerName: "Total Volume", field: "volume", width: 104,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: MoneyRenderer,
+        comparator: (a, b) => Number(a) - Number(b) },
+      { headerName: "# Trades", field: "numTrades", width: 86,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: IntRenderer,
+        comparator: (a, b) => Number(a) - Number(b),
+        headerTooltip: "Total transactions in the contract — frequency of repricings" },
+      { headerName: "Expiry Date", field: "expiry", width: 92,
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+        cellRenderer: MonoRenderer },
+      { headerName: "Subscribe", field: "__subscribed", width: 80,
         sortable: false, resizable: false,
-        headerClass: "ag-center-header",
+        headerClass: "ag-center-header ag-compact-header",
+        cellClass: "ag-compact-cell",
         cellRenderer: AlertRenderer,
         cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" } },
     ];
@@ -159,6 +216,26 @@ function MarketsGrid({ rows, selectedId, onSelectRow, selected, setSelected, onS
     if (!api) return;
     api.setGridOption("rowData", rowData);
   }, [rowData]);
+
+  // Update dynamic column headers when daysChange changes
+  React.useEffect(() => {
+    const api = apiRef.current;
+    if (!api) return;
+    const d = daysChange || 1;
+    const probCol = api.getColumnDef ? api.getColumnDef("probChg") : null;
+    const zCol = api.getColumnDef ? api.getColumnDef("zScore") : null;
+    // Prefer setColumnDefs if available
+    const allDefs = api.getColumnDefs ? api.getColumnDefs() : null;
+    if (allDefs) {
+      const updated = allDefs.map(c => {
+        if (c.colId === "probChg" || c.field === "probChg") return { ...c, headerName: `${d}d Prob Chg` };
+        if (c.colId === "zScore" || c.field === "zScore") return { ...c, headerName: `${d}d Z-Score` };
+        if (c.colId === "priorProb" || c.field === "priorProb") return { ...c, headerName: `${d}d Prior Prob` };
+        return c;
+      });
+      api.setGridOption("columnDefs", updated);
+    }
+  }, [daysChange]);
 
   // Sync external selection Set -> grid
   React.useEffect(() => {
@@ -281,7 +358,7 @@ function ExpandedDetail({ market, onSubscribe, subscribed }) {
 
 function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists, focusListId, clearFocusList }) {
   const { MARKETS } = window.MARKETS_DATA;
-  const [tag, setTag] = React.useState("All");
+  const [tags, setTags] = React.useState([]);
   const [attrs, setAttrs] = React.useState([]);
   const [volumeMin, setVolumeMin] = React.useState(0);
   const [probChgMin, setProbChgMin] = React.useState(0);
@@ -290,6 +367,7 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
   const [subMarket, setSubMarket] = React.useState(null);
   const [subTag, setSubTag] = React.useState(null);
   const [search, setSearch] = React.useState("");
+  const [daysChange, setDaysChange] = React.useState(1);
   const [activeList, setActiveList] = React.useState(focusListId || "all_markets"); // list id
   React.useEffect(() => {
     if (focusListId) { setActiveList(focusListId); clearFocusList && clearFocusList(); }
@@ -307,7 +385,7 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
     prevListRef.current = activeList;
     if (activeListObj && activeListObj.system && activeListObj.filters) {
       const f = activeListObj.filters;
-      setTag("All");
+      setTags([]);
       setAttrs([]);
       setZMin(f.zMin ?? 0);
       setVolumeMin(f.volumeMin ?? 0);
@@ -320,6 +398,7 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
     const [mo, da, yr] = (window.MARKETS_DATA.TODAY || "").split("/").map(Number);
     return new Date(yr, mo - 1, da).getTime();
   }, []);
+  const listExpiredOnly = activeListObj && activeListObj.expiredOnly;
   const filtered = MARKETS.filter(m => {
     if (listMarketIds && !listMarketIds.has(m.id)) return false;
     if (listCreatedWithinDays != null) {
@@ -328,7 +407,13 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
       const ageDays = (todayMs - new Date(yr, mo - 1, da).getTime()) / 86400000;
       if (!(ageDays <= listCreatedWithinDays)) return false;
     }
-    if (tag !== "All" && m.tag !== tag) return false;
+    if (listExpiredOnly) {
+      if (!m.expiry) return false;
+      const [mo, da, yr] = m.expiry.split("/").map(Number);
+      const expMs = new Date(yr, mo - 1, da).getTime();
+      if (!(expMs < todayMs)) return false;
+    }
+    if (tags.length && !tags.includes(m.tag)) return false;
     if (attrs.length && !attrs.includes(m.attr)) return false;
     if (Number(volumeMin) > 0 && m.volume < Number(volumeMin)) return false;
     if (Number(probChgMin) > 0 && Math.abs(m.probChg) < Number(probChgMin)) return false;
@@ -340,7 +425,7 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
   const isSubscribed = (id) => subscriptions.some(s => s.marketId === id && s.active);
 
   const handleSubscribe = (m) => setSubMarket(m);
-  const handleSubscribeTag = () => setSubTag({ tag, attrs });
+  const handleSubscribeTag = () => setSubTag({ tag: tags[0] || "All", tags, attrs });
 
   const toggleSelect = (id) => setSelected(prev => {
     const next = new Set(prev);
@@ -361,10 +446,10 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
   const clearSelection = () => setSelected(new Set());
 
   React.useEffect(() => {
-    const h = () => setSubTag({ tag, attrs });
+    const h = () => setSubTag({ tag: tags[0] || "All", tags, attrs });
     window.addEventListener('pm:subscribe-tag', h);
     return () => window.removeEventListener('pm:subscribe-tag', h);
-  }, [tag, attrs]);
+  }, [tags, attrs]);
 
   const selectedMarket = MARKETS.find(m => m.id === selectedId) || filtered[0];
 
@@ -375,32 +460,107 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
           <div className="split-stacked">
             <div className="split-top">
               <div className="card" style={{height:'100%', display:'flex', flexDirection:'column', minHeight:0}}>
-                <div className="card-header row-between" style={{gap:12, flexWrap:'wrap'}}>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div className="card-title" style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                      Contract List{activeListObj ? ` — ${activeListObj.name}` : ""}
-                    </div>
-                    <div className="card-sub">Showing {filtered.length} of {MARKETS.length} events</div>
-                  </div>
-                  <div className="row" style={{flexShrink:0, gap:8}}>
-                    <select className="select" value={activeList} onChange={e => { setActiveList(e.target.value); clearSelection(); }} style={{width:200}}>
-                      {watchlists.filter(w => w.system).map(w => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                      {watchlists.some(w => !w.system) && <option disabled>──────────</option>}
-                      {watchlists.filter(w => !w.system).map(w => (
-                        <option key={w.id} value={w.id}>{w.name} ({(w.marketIds || []).length})</option>
-                      ))}
-                    </select>
+                <div className="card-header" style={{gap:8, flexWrap:'nowrap', display:'flex', alignItems:'center', overflow:'hidden'}}>
+                  {(() => {
+                    const pillOrder = [
+                      { id: "biggest_movers", name: "Biggest Movers" },
+                      { id: "new_contracts", name: "New Contracts" },
+                      { id: "__bam__", name: "BAM Themes" },
+                      { id: "__custom__", name: "My Custom Themes" },
+                      { id: "all_markets", name: "All Contracts" },
+                      { id: "expired_contracts", name: "Expired Contracts" },
+                    ];
+                    const customLists = watchlists.filter(w => !w.system);
+                    const bamLists = watchlists.filter(w => w.system && w.bam);
+                    const activeIsCustom = activeListObj && !activeListObj.system;
+                    const activeIsBam = activeListObj && activeListObj.system && activeListObj.bam;
+                    return (
+                      <>
+                        <div className="chips" style={{gap:6, flexShrink:0}}>
+                          {pillOrder.map(p => {
+                            const isCustom = p.id === "__custom__";
+                            const isBam = p.id === "__bam__";
+                            const isActive = isCustom ? activeIsCustom : isBam ? activeIsBam : activeList === p.id;
+                            return (
+                              <button
+                                key={p.id}
+                                className={`chip ${isActive ? "active" : ""}`}
+                                onClick={() => {
+                                  if (isCustom) {
+                                    const target = activeIsCustom ? activeList : (customLists[0] && customLists[0].id);
+                                    if (target) { setActiveList(target); clearSelection(); }
+                                  } else if (isBam) {
+                                    const target = activeIsBam ? activeList : (bamLists[0] && bamLists[0].id);
+                                    if (target) { setActiveList(target); clearSelection(); }
+                                  } else {
+                                    setActiveList(p.id);
+                                    clearSelection();
+                                  }
+                                }}
+                                disabled={(isCustom && customLists.length === 0) || (isBam && bamLists.length === 0)}
+                                title={(isCustom && customLists.length === 0) ? "No custom themes yet" : (isBam && bamLists.length === 0) ? "No BAM themes available" : undefined}
+                              >
+                                {p.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {activeIsCustom && (
+                          <select
+                            className="select"
+                            value={activeList}
+                            onChange={e => { setActiveList(e.target.value); clearSelection(); }}
+                            style={{width:170, flexShrink:0}}
+                          >
+                            {customLists.map(w => (
+                              <option key={w.id} value={w.id}>{w.name} ({(w.marketIds || []).length})</option>
+                            ))}
+                          </select>
+                        )}
+                        {activeIsBam && (
+                          <select
+                            className="select"
+                            value={activeList}
+                            onChange={e => { setActiveList(e.target.value); clearSelection(); }}
+                            style={{width:170, flexShrink:0}}
+                          >
+                            {bamLists.map(w => (
+                              <option key={w.id} value={w.id}>{w.name} ({(w.marketIds || []).length})</option>
+                            ))}
+                          </select>
+                        )}
+                      </>
+                    );
+                  })()}
+                  <div style={{marginLeft:'auto', flexShrink:0, display:'flex', alignItems:'center', gap:8}}>
+                    <label style={{display:'flex', alignItems:'center', gap:6, fontSize:12, color:'hsl(var(--muted-foreground))', whiteSpace:'nowrap'}}>
+                      <span># Days Change</span>
+                      <input
+                        className="input mono"
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={daysChange}
+                        onChange={e => {
+                          const raw = e.target.value;
+                          if (raw === "") { setDaysChange(""); return; }
+                          const n = parseInt(raw, 10);
+                          if (Number.isFinite(n) && n >= 1) setDaysChange(n);
+                        }}
+                        onBlur={() => { if (daysChange === "" || daysChange < 1) setDaysChange(1); }}
+                        style={{width:60, textAlign:'center'}}
+                        title="Number of days used to compute the z-score window"
+                      />
+                    </label>
                     <div style={{position:'relative'}}>
                       <input
                         className="input"
                         placeholder="Search markets…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        style={{width:200, paddingLeft:28}}
+                        style={{width:200, paddingLeft:30, background:'hsl(var(--primary) / 0.08)', borderColor:'hsl(var(--primary) / 0.35)', fontWeight:500}}
                       />
-                      <span style={{position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:'hsl(var(--muted-foreground))', pointerEvents:'none', display:'flex'}}>
+                      <span style={{position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:'hsl(var(--primary))', pointerEvents:'none', display:'flex'}}>
                         <Icon.Search size={14}/>
                       </span>
                     </div>
@@ -415,6 +575,7 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
                     setSelected={setSelected}
                     onSubscribe={handleSubscribe}
                     isSubscribed={isSubscribed}
+                    daysChange={daysChange || 1}
                   />
                 </div>
               </div>
@@ -430,7 +591,7 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
         </div>
         <div className="content-side">
           <FilterSidebar
-            tag={tag} setTag={setTag}
+            tags={tags} setTags={setTags}
             attrs={attrs} setAttrs={setAttrs}
             volumeMin={volumeMin} setVolumeMin={setVolumeMin}
             probChgMin={probChgMin} setProbChgMin={setProbChgMin}

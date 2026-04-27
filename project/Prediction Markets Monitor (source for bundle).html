@@ -10,8 +10,19 @@
 <link rel="stylesheet" href="styles.css?v=13"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-quartz.css"/>
+<meta name="ext-resource-dependency" content="assets/bam-icon.jpeg" data-resource-id="bamLogo"/>
+<meta name="ext-resource-dependency" content="assets/polymarket.png" data-resource-id="polymarketLogo"/>
+<meta name="ext-resource-dependency" content="assets/kalshi.png" data-resource-id="kalshiLogo"/>
 </head>
 <body>
+<template id="__bundler_thumbnail" data-bg-color="#0b5cd6">
+  <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+    <rect width="240" height="240" fill="#0b5cd6"/>
+    <path d="M40 60 L120 100 L60 130 Z" fill="#ffffff"/>
+    <path d="M120 100 L200 60 L180 130 Z" fill="#ffffff" opacity="0.85"/>
+    <path d="M120 110 L150 200 L90 200 Z" fill="#ffffff"/>
+  </svg>
+</template>
 <div id="root"></div>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
@@ -44,7 +55,7 @@ function TopNav({ page, setPage, subCount, watchlistCount }) {
     <header className="topnav">
       <div className="topnav-inner">
         <div className="topnav-brand">
-          <div className="topnav-brand-logo"><img src="assets/bam-icon.jpeg" alt="BAM"/></div>
+          <div className="topnav-brand-logo"><img src={window.__resources && window.__resources.bamLogo ? window.__resources.bamLogo : "assets/bam-icon.jpeg"} alt="BAM"/></div>
           <div className="topnav-brand-title">Prediction Market Hub</div>
         </div>
 
