@@ -104,7 +104,7 @@ function WatchlistsPage({ watchlists, setWatchlists, onOpenInBrowse, onSubscribe
               <div className="card-sub">{watchlists.length} {watchlists.length === 1 ? "list" : "lists"} · curate contracts you care about</div>
             </div>
             <button className="btn btn-primary btn-sm" onClick={() => {setCreateOpen(true);setNewName("");}}>
-              <Icon.Plus size={12} /> New watchlist
+              <Icon.Plus size={12} /> New Custom Theme
             </button>
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
@@ -209,7 +209,7 @@ function WatchlistsPage({ watchlists, setWatchlists, onOpenInBrowse, onSubscribe
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)}>
         <div className="dialog-header">
-          <div className="dialog-title">New watchlist</div>
+          <div className="dialog-title">New Custom Theme</div>
           <div className="dialog-sub">Create an empty list and add markets later from the Browse page.</div>
         </div>
         <div className="dialog-body">

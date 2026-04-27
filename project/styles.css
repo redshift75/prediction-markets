@@ -21,6 +21,7 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
+#root { height: 130vh; }
 body {
   margin: 0;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -40,7 +41,7 @@ button { font: inherit; cursor: pointer; }
 .app {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: 100vh;
+  height: 130vh;
   overflow: hidden;
 }
 
@@ -190,7 +191,9 @@ button { font: inherit; cursor: pointer; }
 }
 .content.no-sidebar { grid-template-columns: minmax(0, 1fr); }
 .content-main { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
-.content-side { overflow-y: auto; min-height: 0; }
+.content-side { min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.content-side > .card { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.content-side > .card > .card-body { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* Cards */
 .card {
@@ -507,13 +510,13 @@ button { font: inherit; cursor: pointer; }
 /* Stacked split layout */
 .split-stacked {
   display: grid;
-  grid-template-rows: 60% 60%;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   height: 100%;
   min-height: 0;
   min-width: 0;
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .split-top, .split-bottom { min-height: 0; min-width: 0; overflow: hidden; }
 .split-top > .card, .split-bottom > .card { height: 100%; min-width: 0; }
