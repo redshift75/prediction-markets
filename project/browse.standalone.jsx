@@ -481,7 +481,7 @@ function BrowsePage({ subscriptions, addSubscription, watchlists, setWatchlists,
                     const activeIsBam = activeListObj && activeListObj.system && activeListObj.bam;
                     return (
                       <>
-                        <div className="chips" style={{ gap: 6, flexShrink: 0, borderBottom: 'none', padding: "4px 0px 4px 4px" }}>
+                        <div className="chips" style={{ gap: 6, flexShrink: 0, borderBottom: 'none', padding: '4px 0' }}>
                           {pillOrder.map((p) => {
                             const isCustom = p.id === "__custom__";
                             const isBam = p.id === "__bam__";

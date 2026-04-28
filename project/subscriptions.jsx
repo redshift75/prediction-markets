@@ -134,7 +134,7 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription })
                 <div>
                   <div className="filter-label">Alert frequency</div>
                   <div className="seg">
-                    {["instant","daily","weekly"].map(f => {
+                    {["instant","daily"].map(f => {
                       const disabled = f === "instant";
                       return (
                         <button
@@ -163,7 +163,7 @@ function SubscriptionsPage({ subscriptions, setSubscriptions, addSubscription })
                     <div>
                       <div className="filter-label">Alert frequency</div>
                       <div className="seg">
-                        {["instant","daily","weekly"].map(f => {
+                        {["instant","daily"].map(f => {
                           const disabled = f === "instant";
                           return (
                             <button

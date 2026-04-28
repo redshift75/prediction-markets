@@ -21,7 +21,7 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
-#root { height: 130vh; }
+#root { height: 100%; }
 body {
   margin: 0;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -41,15 +41,22 @@ button { font: inherit; cursor: pointer; }
 .app {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: 130vh;
+  height: 100vh;
   overflow: hidden;
 }
 
 /* Top navigation */
 .topnav {
-  background: hsl(var(--background));
-  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(221 83% 45%);
+  border-bottom: 1px solid hsl(221 83% 38%);
+  color: #fff;
 }
+.topnav .topnav-brand-title,
+.topnav .topnav-item,
+.topnav .topnav-user-name,
+.topnav .topnav-user-email { color: #fff; }
+.topnav .topnav-brand { border-right-color: hsl(221 83% 55% / 0.5); }
+.topnav .topnav-right { border-left-color: hsl(221 83% 55% / 0.5); }
 .topnav-inner {
   display: flex;
   align-items: center;
@@ -100,28 +107,29 @@ button { font: inherit; cursor: pointer; }
   background: transparent;
   white-space: nowrap;
 }
-.topnav-item:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.topnav-item:hover { background: hsl(221 83% 38%); color: #fff; }
 .topnav-item.active {
-  color: hsl(var(--foreground));
-  background: hsl(var(--muted));
+  color: #fff;
+  background: hsl(221 83% 32%);
   font-weight: 600;
 }
 .topnav-item .count {
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border));
+  background: hsl(221 83% 22%);
+  border: 1px solid hsl(221 83% 55% / 0.6);
   padding: 0 6px;
   border-radius: 999px;
   font-size: 10.5px;
-  color: hsl(var(--muted-foreground));
-  font-weight: 500;
+  color: #fff;
+  font-weight: 600;
   min-width: 18px;
   text-align: center;
   line-height: 16px;
   font-variant-numeric: tabular-nums;
 }
 .topnav-item.active .count {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background: #fff;
+  color: hsl(221 83% 32%);
+  border-color: #fff;
 }
 .topnav-icon { padding: 7px; }
 
@@ -141,7 +149,7 @@ button { font: inherit; cursor: pointer; }
   padding: 4px 4px 4px 8px;
   border-radius: 8px;
 }
-.topnav-user:hover { background: hsl(var(--muted)); cursor: pointer; }
+.topnav-user:hover { background: hsl(221 83% 38%); cursor: pointer; }
 .topnav-avatar {
   width: 28px; height: 28px;
   border-radius: 999px;
@@ -153,7 +161,7 @@ button { font: inherit; cursor: pointer; }
 }
 .topnav-user-text { min-width: 0; line-height: 1.2; }
 .topnav-user-name { font-weight: 500; font-size: 12.5px; color: hsl(var(--foreground)); }
-.topnav-user-email { font-size: 11px; color: hsl(var(--muted-foreground)); }
+.topnav-user-email { font-size: 11px; color: hsl(221 60% 88%); }
 
 /* Main */
 .main {
@@ -183,9 +191,9 @@ button { font: inherit; cursor: pointer; }
 
 .content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 16px;
-  padding: 16px 24px;
+  padding: 4px 24px 16px;
   overflow: hidden;
   min-height: 0;
 }
@@ -218,7 +226,6 @@ button { font: inherit; cursor: pointer; }
   gap: 6px;
   padding: 12px 16px;
   background: hsl(var(--background));
-  border-bottom: 1px solid hsl(var(--border));
 }
 .chip {
   display: inline-flex;
@@ -258,9 +265,13 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid hsl(var(--border));
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
   outline: none;
   transition: border-color 80ms, box-shadow 80ms;
+}
+.input.mono, .select.mono, .textarea.mono {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 .input:focus, .select:focus, .textarea:focus {
   border-color: hsl(var(--ring));
@@ -666,11 +677,11 @@ hr.sep { border: none; border-top: 1px solid hsl(var(--border)); margin: 12px 0;
   --ag-header-column-separator-display: none;
   --ag-header-column-resize-handle-display: block;
   --ag-header-column-resize-handle-color: hsl(var(--border));
-  --ag-cell-horizontal-padding: 8px;
-  --ag-grid-size: 4px;
-  --ag-list-item-height: 28px;
-  --ag-row-height: 32px;
-  --ag-header-height: 30px;
+  --ag-cell-horizontal-padding: 6px;
+  --ag-grid-size: 3px;
+  --ag-list-item-height: 24px;
+  --ag-row-height: 26px;
+  --ag-header-height: 28px;
   --ag-borders: none;
   --ag-borders-critical: solid 1px;
   --ag-range-selection-border-color: transparent;
@@ -684,18 +695,19 @@ hr.sep { border: none; border-top: 1px solid hsl(var(--border)); margin: 12px 0;
 }
 .ag-theme-quartz.ag-pm .ag-header-cell {
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: 700;
   text-transform: none;
   letter-spacing: 0;
 }
 .ag-theme-quartz.ag-pm .ag-header-cell-label {
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--foreground));
+  font-weight: 700;
 }
 .ag-theme-quartz.ag-pm .ag-cell {
   display: flex;
   align-items: center;
   font-size: 11.5px;
-  line-height: 1.4;
+  line-height: 1.25;
   border-right: none;
 }
 .ag-theme-quartz.ag-pm .ag-row {
@@ -719,13 +731,24 @@ hr.sep { border: none; border-top: 1px solid hsl(var(--border)); margin: 12px 0;
   color: hsl(var(--muted-foreground));
   font-size: 11.5px;
 }
-/* Force Inter for ALL cells (override .mono → JetBrains Mono) */
+/* Force Inter for text in the list (override .mono → JetBrains Mono) */
 .ag-theme-quartz.ag-pm,
 .ag-theme-quartz.ag-pm .ag-cell,
 .ag-theme-quartz.ag-pm .ag-cell .mono,
-.ag-theme-quartz.ag-pm .ag-header-cell {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+.ag-theme-quartz.ag-pm .ag-cell .tnum,
+.ag-theme-quartz.ag-pm .ag-cell-value,
+.ag-theme-quartz.ag-pm .ag-header-cell,
+.ag-theme-quartz.ag-pm .ag-header-cell-text {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
   font-feature-settings: "tnum";
+}
+/* Restore ag-grid's icon font for checkboxes, sort arrows, and other glyphs */
+.ag-theme-quartz.ag-pm .ag-icon,
+.ag-theme-quartz.ag-pm [class*="ag-icon"],
+.ag-theme-quartz.ag-pm .ag-checkbox-input-wrapper,
+.ag-theme-quartz.ag-pm .ag-checkbox-input-wrapper::before,
+.ag-theme-quartz.ag-pm .ag-checkbox-input-wrapper::after {
+  font-family: agGridQuartz !important;
 }
 .ag-theme-quartz.ag-pm .ag-checkbox-input-wrapper {
   font-size: 14px;
@@ -747,8 +770,18 @@ hr.sep { border: none; border-top: 1px solid hsl(var(--border)); margin: 12px 0;
 /* Compact metric columns — tighten padding so width belongs to event/outcome */
 .ag-theme-quartz.ag-pm .ag-header-cell.ag-compact-header,
 .ag-theme-quartz.ag-pm .ag-cell.ag-compact-cell {
-  padding-left: 4px;
-  padding-right: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+.ag-theme-quartz.ag-pm .ag-header-cell.ag-tight-header,
+.ag-theme-quartz.ag-pm .ag-cell.ag-tight-cell {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.ag-theme-quartz.ag-pm .ag-header-cell.ag-tight-header .ag-header-cell-label {
+  padding-left: 0;
+  padding-right: 0;
+  white-space: nowrap;
 }
 .ag-theme-quartz.ag-pm .ag-header-cell.ag-compact-header .ag-header-cell-label {
   white-space: nowrap;
